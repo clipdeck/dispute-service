@@ -22,7 +22,7 @@ export const consumer: EventConsumer = createConsumer({
   connectionUrl: config.rabbitmqUrl,
   queueName: 'dispute.events',
   exchange: config.eventExchange,
-  routingKeys: ['clip.rejected', 'dispute.channel_closed'],
+  routingKeys: ['clip.rejected', 'clip.approved', 'clip.submitted'],
   enableLogging: true,
   logger: {
     info: (msg, data) => logger.info(data, msg),

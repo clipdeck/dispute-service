@@ -71,3 +71,20 @@ enum TicketPriority {
   HIGH
   URGENT
 }
+
+// ============================================================================
+// Cross-Service Cache Models (event-synced, read-only)
+// ============================================================================
+
+model SubmissionCache {
+  id         String   @id            // Same ID as in clip-service
+  campaignId String
+  platform   String
+  linkUrl    String?
+  editorId   String?
+  status     String?
+  syncedAt   DateTime @default(now())
+
+  @@index([campaignId])
+  @@index([syncedAt])
+}

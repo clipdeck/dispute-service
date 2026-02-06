@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model ClipDispute {
+  id               String        @id @default(uuid())
+  submissionId     String
+  userId           String
+  reason           String
+  status           DisputeStatus @default(OPEN)
+  discordChannelId String?
+  discordMessageId String?
+  staffNotes       String?
+  resolvedBy       String?
+  resolvedAt       DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([submissionId])
+  @@index([userId, status])
+  @@index([status, createdAt])
+}
+
+model SupportTicket {
+  id               String         @id @default(uuid())
+  userId           String
+  subject          String
+  description      String
+  status           TicketStatus   @default(OPEN)
+  priority         TicketPriority @default(MEDIUM)
+  discordChannelId String?
+  discordMessageId String?
+  assignedTo       String?
+  resolvedBy       String?
+  resolvedAt       DateTime?
+  transcript       String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([userId, status])
+  @@index([status, priority])
+  @@index([assignedTo, status])
+  @@index([createdAt])
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  CLOSED
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_USER
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}

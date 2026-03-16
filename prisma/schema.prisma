@@ -87,4 +87,6 @@ model SubmissionCache {
 
   @@index([campaignId])
   @@index([syncedAt])
+  @@index([editorId])
+  @@index([status])
 }

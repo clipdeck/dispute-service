@@ -37,12 +37,14 @@ jobs:
         with:
           repository: clipdeck/shared-types
           path: shared-types
+          token: ${{ secrets.GH_TOKEN }}
 
       - name: Checkout shared-events
         uses: actions/checkout@v4
         with:
           repository: clipdeck/shared-events
           path: shared-events
+          token: ${{ secrets.GH_TOKEN }}
 
       - name: Setup Node.js 20
         uses: actions/setup-node@v4

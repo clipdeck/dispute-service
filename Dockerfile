@@ -1,14 +1,22 @@
 # ============================================================================
 # Dispute Service Dockerfile
 # Multi-stage build for minimal production image
+#
+# Build context must be the parent directory containing:
+#   service/        - dispute-service source
+#   shared-types/   - @clipdeck/types package
+#   shared-events/  - @clipdeck/events package
 # ============================================================================
 
 # Stage 1: Dependencies
 FROM node:20-alpine AS deps
 WORKDIR /app
 
-COPY package*.json ./
-COPY prisma ./prisma/
+COPY shared-types/ /shared-types/
+COPY shared-events/ /shared-events/
+
+COPY service/package*.json ./
+COPY service/prisma ./prisma/
 
 RUN npm ci --omit=dev && npx prisma generate
 
@@ -16,14 +24,17 @@ RUN npm ci --omit=dev && npx prisma generate
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-COPY package*.json ./
-COPY tsconfig.json ./
-COPY prisma ./prisma/
+COPY shared-types/ /shared-types/
+COPY shared-events/ /shared-events/
+
+COPY service/package*.json ./
+COPY service/tsconfig.json ./
+COPY service/prisma ./prisma/
 
 RUN npm ci
 RUN npx prisma generate
 
-COPY src ./src/
+COPY service/src ./src/
 RUN npm run build
 
 # Stage 3: Production
@@ -36,7 +47,10 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 dispute
 
+COPY --from=deps /shared-types/ /shared-types/
+COPY --from=deps /shared-events/ /shared-events/
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package.json ./

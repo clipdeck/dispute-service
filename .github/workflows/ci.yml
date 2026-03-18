@@ -85,6 +85,7 @@ jobs:
         env:
           DATABASE_URL: postgresql://clipdeck_test:clipdeck_test@localhost:5432/clipdeck_test
           DIRECT_URL: postgresql://clipdeck_test:clipdeck_test@localhost:5432/clipdeck_test
+          JWT_SECRET: test-secret-minimum-sixteen-chars
         run: npm run test:coverage
 
       - name: Docker build check

@@ -18,6 +18,7 @@ COPY shared-events/ /shared-events/
 COPY service/package*.json ./
 COPY service/prisma ./prisma/
 
+RUN cd /shared-events && npm install --production --ignore-scripts 2>&1 | tail -3
 RUN npm ci --omit=dev && npx prisma generate
 
 # Stage 2: Build
@@ -31,6 +32,8 @@ COPY service/package*.json ./
 COPY service/tsconfig.json ./
 COPY service/prisma ./prisma/
 
+RUN cd /shared-events && npm install --ignore-scripts 2>&1 | tail -3
+RUN cd /shared-events && npm run build
 RUN npm ci
 RUN npx prisma generate
 
@@ -48,7 +51,7 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 dispute
 
 COPY --from=deps /shared-types/ /shared-types/
-COPY --from=deps /shared-events/ /shared-events/
+COPY --from=builder /shared-events/ /shared-events/
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/dist ./dist
@@ -62,4 +65,4 @@ EXPOSE 3009
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3009/health || exit 1
 
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
+CMD ["node", "dist/index.js"]

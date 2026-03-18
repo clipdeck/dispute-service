@@ -1,0 +1,69 @@
+name: CD
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    name: Build, Push & Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout dispute-service
+        uses: actions/checkout@v4
+        with:
+          path: service
+
+      - name: Checkout shared-types
+        uses: actions/checkout@v4
+        with:
+          repository: clipdeck/shared-types
+          path: shared-types
+
+      - name: Checkout shared-events
+        uses: actions/checkout@v4
+        with:
+          repository: clipdeck/shared-events
+          path: shared-events
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to DigitalOcean Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: registry.digitalocean.com
+          username: ${{ secrets.DO_REGISTRY_TOKEN }}
+          password: ${{ secrets.DO_REGISTRY_TOKEN }}
+
+      - name: Prepare build context
+        run: |
+          mkdir -p _ctx/shared-types _ctx/shared-events _ctx/service
+          cp -r shared-types/. _ctx/shared-types/
+          cp -r shared-events/. _ctx/shared-events/
+          cp -r service/. _ctx/service/ 2>/dev/null || true
+          rm -rf _ctx/service/_ctx
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: _ctx
+          file: _ctx/service/Dockerfile
+          push: true
+          tags: registry.digitalocean.com/clipdeck/dispute:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > ~/.kube/config
+
+      - name: Rolling restart
+        run: |
+          kubectl rollout restart deployment/dispute-service -n clipdeck
+          kubectl rollout status deployment/dispute-service -n clipdeck --timeout=120s

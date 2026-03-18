@@ -10,7 +10,7 @@ import { registerEventHandlers } from './events/handlers';
 
 async function main() {
   const app = Fastify({
-    logger: logger as any,
+    loggerInstance: logger,
   });
 
   // Plugins

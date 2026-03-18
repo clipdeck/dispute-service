@@ -28,13 +28,13 @@ spec:
               protocol: TCP
           env:
             - name: NODE_ENV
-              value: "production"
+              value: 'production'
             - name: PORT
-              value: "3009"
+              value: '3009'
             - name: HOST
-              value: "0.0.0.0"
+              value: '0.0.0.0'
             - name: LOG_LEVEL
-              value: "info"
+              value: 'info'
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
@@ -56,13 +56,13 @@ spec:
                   name: clipdeck-rabbitmq
                   key: RABBITMQ_URL
             - name: EVENT_EXCHANGE
-              value: "clipdeck.events"
+              value: 'clipdeck.events'
             - name: ALLOWED_ORIGINS
-              value: "https://clipdeck.com,https://www.clipdeck.com"
+              value: 'https://clipdeck.ar,https://www.clipdeck.ar'
             - name: DISCORD_SERVICE_URL
-              value: "http://discord-service.clipdeck.svc.cluster.local:3006"
+              value: 'http://discord-service.clipdeck.svc.cluster.local:3006'
             - name: CLIP_SERVICE_URL
-              value: "http://clip-service.clipdeck.svc.cluster.local:3002"
+              value: 'http://clip-service.clipdeck.svc.cluster.local:3002'
           livenessProbe:
             httpGet:
               path: /health
@@ -81,10 +81,10 @@ spec:
             failureThreshold: 3
           resources:
             requests:
-              memory: "512Mi"
-              cpu: "250m"
+              memory: '512Mi'
+              cpu: '250m'
             limits:
-              memory: "1Gi"
-              cpu: "500m"
+              memory: '1Gi'
+              cpu: '500m'
       imagePullSecrets:
         - name: clipdeck-registry

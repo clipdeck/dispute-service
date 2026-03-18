@@ -12,7 +12,7 @@ const envSchema = z.object({
   RABBITMQ_URL: z.string().optional(),
   EVENT_EXCHANGE: z.string().default('clipdeck.events'),
 
-  JWT_SECRET: z.string().min(16),
+  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
 
   DISCORD_SERVICE_URL: z.string().url().optional(),
   CLIP_SERVICE_URL: z.string().url().optional(),

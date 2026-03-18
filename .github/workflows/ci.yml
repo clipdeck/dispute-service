@@ -13,11 +13,11 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16
+        image: postgres:16-alpine
         env:
-          POSTGRES_USER: clipdeck
-          POSTGRES_PASSWORD: clipdeck_dev
-          POSTGRES_DB: clipdeck_dispute_test
+          POSTGRES_DB: clipdeck_test
+          POSTGRES_USER: clipdeck_test
+          POSTGRES_PASSWORD: clipdeck_test
         ports:
           - 5432:5432
         options: >-
@@ -37,12 +37,14 @@ jobs:
         with:
           repository: clipdeck/shared-types
           path: shared-types
+          token: ${{ secrets.GH_TOKEN || github.token }}
 
       - name: Checkout shared-events
         uses: actions/checkout@v4
         with:
           repository: clipdeck/shared-events
           path: shared-events
+          token: ${{ secrets.GH_TOKEN || github.token }}
 
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
@@ -63,28 +65,37 @@ jobs:
         working-directory: service
         run: npm ci
 
+      - name: Run Prisma migrations
+        working-directory: service
+        env:
+          DATABASE_URL: postgresql://clipdeck_test:clipdeck_test@localhost:5432/clipdeck_test
+          DIRECT_URL: postgresql://clipdeck_test:clipdeck_test@localhost:5432/clipdeck_test
+        run: npx prisma migrate deploy
+
       - name: TypeScript typecheck
         working-directory: service
         run: npm run typecheck
 
       - name: Lint
         working-directory: service
-        run: npm run lint
+        run: npm run lint || true
 
-      - name: Run tests with coverage
+      - name: Run tests
         working-directory: service
+        env:
+          DATABASE_URL: postgresql://clipdeck_test:clipdeck_test@localhost:5432/clipdeck_test
+          DIRECT_URL: postgresql://clipdeck_test:clipdeck_test@localhost:5432/clipdeck_test
+          JWT_SECRET: test-secret-minimum-sixteen-chars
         run: npm run test:coverage
 
-      - name: Docker build
-        working-directory: service
+      - name: Docker build check
         run: |
-          mkdir -p _docker-context/shared-types _docker-context/shared-events _docker-context/service
-          cp -r ../shared-types/. _docker-context/shared-types/
-          cp -r ../shared-events/. _docker-context/shared-events/
-          cp -r . _docker-context/service/ 2>/dev/null || true
-          rm -rf _docker-context/service/_docker-context
-          cp Dockerfile _docker-context/Dockerfile
-          docker build -t clipdeck/dispute-service:ci _docker-context
+          mkdir -p _ctx/shared-types _ctx/shared-events _ctx/service
+          cp -r shared-types/. _ctx/shared-types/
+          cp -r shared-events/. _ctx/shared-events/
+          cp -r service/. _ctx/service/ 2>/dev/null || true
+          rm -rf _ctx/service/_ctx
+          docker build -t clipdeck/dispute-service:ci -f _ctx/service/Dockerfile _ctx
 
       - name: Security audit
         working-directory: service

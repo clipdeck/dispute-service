@@ -43,6 +43,9 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
+# Fix CVE-2026-22184: upgrade zlib to patched version
+RUN apk upgrade --no-cache zlib
+
 # Add non-root user
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 dispute

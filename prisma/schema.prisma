@@ -10,22 +10,35 @@ datasource db {
 }
 
 model ClipDispute {
-  id               String        @id @default(uuid())
+  id               String             @id @default(uuid())
   submissionId     String
   userId           String
   reason           String
-  status           DisputeStatus @default(OPEN)
+  description      String?
+  status           DisputeStatus      @default(OPEN)
   discordChannelId String?
   discordMessageId String?
   staffNotes       String?
   resolvedBy       String?
   resolvedAt       DateTime?
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  messages         DisputeMessage[]
 
   @@index([submissionId])
   @@index([userId, status])
   @@index([status, createdAt])
+}
+
+model DisputeMessage {
+  id        String      @id @default(uuid())
+  disputeId String
+  authorId  String
+  content   String
+  createdAt DateTime    @default(now())
+  dispute   ClipDispute @relation(fields: [disputeId], references: [id])
+
+  @@index([disputeId, createdAt])
 }
 
 model SupportTicket {

@@ -8,6 +8,7 @@ import * as disputeService from '../services/disputeService';
 const createDisputeSchema = z.object({
   submissionId: z.string().min(1),
   reason: z.string().min(10, 'Reason must be at least 10 characters'),
+  description: z.string().min(1).max(2000).optional(),
 });
 
 const listDisputesQuerySchema = z.object({
@@ -42,7 +43,8 @@ export async function disputeRoutes(app: FastifyInstance) {
         user.userId,
         body.submissionId,
         body.reason,
-        user
+        user,
+        body.description
       );
       reply.status(201);
       return dispute;
@@ -107,6 +109,72 @@ export async function disputeRoutes(app: FastifyInstance) {
         body.staffNotes
       );
       return updated;
+    } catch (error) {
+      sendError(reply, error);
+    }
+  });
+
+  // PATCH /disputes/:id - Alias for resolve (HIGH-27: frontend calls PATCH /:id)
+  app.patch<{ Params: { id: string } }>('/:id', async (request, reply) => {
+    try {
+      const user = requireStaff(request);
+      const body = validateBody(resolveDisputeSchema, request.body);
+      const updated = await disputeService.resolveDispute(
+        request.params.id,
+        user.userId,
+        body.action,
+        body.staffNotes
+      );
+      return updated;
+    } catch (error) {
+      sendError(reply, error);
+    }
+  });
+
+  // GET /disputes/:id/messages - Get paginated message thread (HIGH-25)
+  app.get<{ Params: { id: string } }>('/:id/messages', async (request, reply) => {
+    try {
+      const user = requireAuth(request);
+      const dispute = await disputeService.getDispute(request.params.id);
+
+      if (!user.isStaff && dispute.userId !== user.userId) {
+        return reply.status(403).send({
+          error: { code: 'FORBIDDEN', message: 'You can only view your own dispute messages' },
+        });
+      }
+
+      const messages = await disputeService.getDisputeMessages(request.params.id);
+      return messages;
+    } catch (error) {
+      sendError(reply, error);
+    }
+  });
+
+  // POST /disputes/:id/messages - Post a message to a dispute thread (HIGH-25)
+  app.post<{ Params: { id: string } }>('/:id/messages', async (request, reply) => {
+    try {
+      const user = requireAuth(request);
+      const body = validateBody(
+        z.object({ content: z.string().min(1).max(2000) }),
+        request.body
+      );
+
+      const dispute = await disputeService.getDispute(request.params.id);
+
+      if (!user.isStaff && dispute.userId !== user.userId) {
+        return reply.status(403).send({
+          error: { code: 'FORBIDDEN', message: 'You can only post messages to your own disputes' },
+        });
+      }
+
+      const message = await disputeService.createDisputeMessage(
+        request.params.id,
+        user.userId,
+        body.content
+      );
+
+      reply.status(201);
+      return { message };
     } catch (error) {
       sendError(reply, error);
     }

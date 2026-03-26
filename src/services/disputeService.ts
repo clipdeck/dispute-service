@@ -24,7 +24,8 @@ export async function createDispute(
   userId: string,
   submissionId: string,
   reason: string,
-  user: AuthUser
+  user: AuthUser,
+  description?: string
 ) {
   // Rate limiting: check cooldown (most recent dispute within 5 min)
   const cooldownTime = new Date(Date.now() - DISPUTE_COOLDOWN_MS);
@@ -65,6 +66,7 @@ export async function createDispute(
       userId,
       submissionId,
       reason,
+      description: description ?? null,
       status: 'OPEN',
     },
   });
@@ -210,4 +212,46 @@ export async function getUserDisputes(userId: string) {
     where: { userId },
     orderBy: { createdAt: 'desc' },
   });
+}
+
+// ============================================================================
+// Dispute Messages
+// ============================================================================
+
+/**
+ * Get messages for a dispute (paginated, ordered oldest-first)
+ */
+export async function getDisputeMessages(
+  disputeId: string,
+  page = 1,
+  limit = 50
+) {
+  const skip = (page - 1) * limit;
+  const [messages, total] = await Promise.all([
+    prisma.disputeMessage.findMany({
+      where: { disputeId },
+      orderBy: { createdAt: 'asc' },
+      skip,
+      take: limit,
+    }),
+    prisma.disputeMessage.count({ where: { disputeId } }),
+  ]);
+
+  return { messages, total, page, limit };
+}
+
+/**
+ * Create a message on a dispute thread
+ */
+export async function createDisputeMessage(
+  disputeId: string,
+  authorId: string,
+  content: string
+) {
+  const message = await prisma.disputeMessage.create({
+    data: { disputeId, authorId, content },
+  });
+
+  logger.info({ messageId: message.id, disputeId, authorId }, 'Dispute message created');
+  return message;
 }

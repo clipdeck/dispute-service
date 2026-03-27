@@ -10,6 +10,8 @@
 
 # Stage 1: Dependencies
 FROM node:20-alpine AS deps
+# CVE-2026-22184: upgrade all Alpine packages (including zlib) in every build stage
+RUN apk upgrade --no-cache
 WORKDIR /app
 
 COPY shared-types/ /shared-types/
@@ -23,6 +25,8 @@ RUN npm ci --omit=dev && npx prisma generate
 
 # Stage 2: Build
 FROM node:20-alpine AS builder
+# CVE-2026-22184: upgrade all Alpine packages (including zlib) in every build stage
+RUN apk upgrade --no-cache
 WORKDIR /app
 
 COPY shared-types/ /shared-types/
@@ -46,8 +50,8 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Fix CVE-2026-22184: upgrade zlib to patched version
-RUN apk upgrade --no-cache zlib
+# CVE-2026-22184: upgrade all Alpine packages (including zlib) in every build stage
+RUN apk upgrade --no-cache
 
 # Add non-root user
 RUN addgroup --system --gid 1001 nodejs && \
